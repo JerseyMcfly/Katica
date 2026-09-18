@@ -92,8 +92,8 @@
       <p class="ios-title" data-i18n="iosTitle">iPhone/iPad-et használsz?</p>
       <p data-i18n="iosIntro">Ezesetben az értesítések engedélyezéséhez végezd el az alábbi lépéseket:</p>
       <ol class="ios-steps">
-        <li data-i18n="iosStep1">Koppints a Megosztás ikonra a böngésző opciókban</li>
-        <li data-i18n="iosStep2">Válaszd a „Hozzáadás a Kezdőképernyőhöz”</li>
+        <li data-i18n="iosStep1">Koppints a Megosztásra a böngészőben</li>
+        <li data-i18n="iosStep2">Válaszd a „Főképernyőhöz adás”-t</li>
         <li data-i18n="iosStep3">A böngésző így lementi a Katica ikont a telefonodra: nyisd meg</li>
         <li data-i18n="iosStep4">Engedélyezd az értesítést</li>
       </ol>
@@ -116,8 +116,8 @@
         enableBtn: '🔔 Értesítések engedélyezése',
         iosTitle: 'iPhone/iPad-et használsz?',
         iosIntro: 'Ezesetben az értesítések engedélyezéséhez végezd el az alábbi lépéseket:',
-        iosStep1: 'Koppints a Megosztás ikonra a böngésző opciókban',
-        iosStep2: 'Válaszd a „Hozzáadás a Kezdőképernyőhöz”',
+        iosStep1: 'Koppints a Megosztásra a böngészőben',
+        iosStep2: 'Válaszd a „Főképernyőhöz adás”-t',
         iosStep3: 'A böngésző így lementi a Katica ikont a telefonodra: nyisd meg',
         iosStep4: 'Engedélyezd az értesítést',
         iosDone: 'Kész :)',
@@ -131,7 +131,9 @@
         unknownError: 'ismeretlen hiba',
         unsubProcessing: 'Leiratkozás...',
         unsubSuccess: 'Leiratkoztál — erről a készülékről mostantól nem kapsz push üzenetet.',
-        unsubError: 'Hiba történt a leiratkozás során. Próbáld újra.'
+        unsubError: 'Hiba történt a leiratkozás során. Próbáld újra.',
+        unsubTimeout: 'Nem sikerült feldolgozni a kérést (időtúllépés). Ha ezen az eszközön korábban nem engedélyezted az értesítéseket, nincs mit visszavonni — egyébként próbáld frissíteni az oldalt és újra.',
+        enableTimeout: 'Nem érkezett válasz (időtúllépés). Ellenőrizd az internetkapcsolatot, majd töltsd újra az oldalt és próbáld újra.'
       },
       en: {
         infoTitle: '🔔 Why enable this?',
@@ -156,7 +158,9 @@
         unknownError: 'unknown error',
         unsubProcessing: 'Unsubscribing...',
         unsubSuccess: "You've unsubscribed — this device will no longer receive push notifications.",
-        unsubError: 'An error occurred while unsubscribing. Please try again.'
+        unsubError: 'An error occurred while unsubscribing. Please try again.',
+        unsubTimeout: "Couldn't process the request (timed out). If you never enabled notifications on this device, there's nothing to undo — otherwise try reloading the page and again.",
+        enableTimeout: 'No response received (timed out). Check your internet connection, reload the page and try again.'
       }
     };
 
@@ -224,19 +228,41 @@
         btn.disabled = true;
         statusEl.innerText = t('processing');
 
+        // Watchdog: ha az OneSignal SDK valamiért nem töltődik be / nem válaszol
+        // (pl. hálózati blokkolás, ad-blocker), a UI korábban örökre "Feldolgozás..."
+        // állapotban ragadt válasz nélkül - ez biztosítja, hogy legalább egy
+        // hibaüzenetet kapjon a felhasználó, ne végtelen töltést.
+        let settled = false;
+        const watchdog = setTimeout(function () {
+          if (!settled) {
+            settled = true;
+            statusEl.innerText = t('enableTimeout');
+            btn.disabled = false;
+          }
+        }, 10000);
+
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function (OneSignal) {
           try {
             await OneSignal.Notifications.requestPermission();
+            if (settled) return;
 
             if (OneSignal.Notifications.permission) {
               await OneSignal.login(email.trim().toLowerCase());
+              if (settled) return;
+              settled = true;
+              clearTimeout(watchdog);
               statusEl.innerText = t('success');
             } else {
+              settled = true;
+              clearTimeout(watchdog);
               statusEl.innerText = t('denied');
               btn.disabled = false;
             }
           } catch (err) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(watchdog);
             console.error(err);
             statusEl.innerText = t('errorPrefix') + (err && err.message ? err.message : t('unknownError')) + t('errorSuffix');
             btn.disabled = false;
@@ -249,12 +275,29 @@
       e.preventDefault();
       unsubStatus.innerText = t('unsubProcessing');
 
+      // Ugyanaz a watchdog-minta, mint az engedélyezés gombnál - a leiratkozás
+      // korábban meg tudott akadni "Leiratkozás..." állapotban válasz nélkül, ha az
+      // OneSignal SDK nem inicializálódott rendesen ezen az eszközön/böngészőn.
+      let settled = false;
+      const watchdog = setTimeout(function () {
+        if (!settled) {
+          settled = true;
+          unsubStatus.innerText = t('unsubTimeout');
+        }
+      }, 10000);
+
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function (OneSignal) {
         try {
           await OneSignal.User.PushSubscription.optOut();
+          if (settled) return;
+          settled = true;
+          clearTimeout(watchdog);
           unsubStatus.innerText = t('unsubSuccess');
         } catch (err) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(watchdog);
           console.error(err);
           unsubStatus.innerText = t('unsubError');
         }
