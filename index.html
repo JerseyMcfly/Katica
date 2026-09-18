@@ -5,81 +5,258 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Katica – Értesítések engedélyezése</title>
 
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function (OneSignal) {
-    await OneSignal.init({
-      appId: "3f6344dd-01bd-4530-a847-9531c43d24ee",
-      serviceWorkerPath: "Katica/OneSignalSDKWorker.js",
-      serviceWorkerParam: { scope: "/Katica/" }
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: "3f6344dd-01bd-4530-a847-9531c43d24ee"
+      });
     });
-  });
-</script>
+  </script>
 
   <style>
     :root { --primary: #e53e3e; --primary-hover: #c53030; --bg: #fdfbf7; --text: #2d3748; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .card {
-      background: #ffffff; border-radius: 20px; padding: 28px; max-width: 420px; width: 100%;
+      background: #ffffff; border-radius: 20px; padding: 26px; max-width: 420px; width: 100%;
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); border: 1px solid #edf2f7; text-align: center;
     }
-    h1 { font-size: 1.3rem; color: var(--primary); margin-bottom: 12px; }
-    p { font-size: 0.95rem; color: #4a5568; margin-bottom: 16px; line-height: 1.5; }
-    button {
+    h1 { font-size: 1.25rem; color: var(--primary); margin-bottom: 14px; }
+    p { font-size: 0.92rem; color: #4a5568; margin-bottom: 10px; line-height: 1.5; }
+
+    .lang-toggle { display: flex; justify-content: center; gap: 6px; margin-bottom: 16px; }
+    .lang-btn { padding: 4px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: #718096; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+    .lang-btn.lang-active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .info-block {
+      background: #f7fafc; border: 1px solid #edf2f7; border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 20px; text-align: left;
+    }
+    .info-title { font-weight: 800; color: var(--primary); font-size: 0.98rem; margin-bottom: 8px; }
+    .info-block p { margin-bottom: 8px; font-size: 0.87rem; }
+    .info-block p:last-child { margin-bottom: 0; }
+
+    button, .btn-link-style {
       width: 100%; padding: 12px; border: none; border-radius: 12px; background-color: var(--primary);
       color: white; font-weight: 700; font-size: 1rem; cursor: pointer;
     }
     button:hover:not(:disabled) { background-color: var(--primary-hover); }
     button:disabled { background-color: #cbd5e0; cursor: not-allowed; }
-    #status { margin-top: 16px; font-size: 0.9rem; font-weight: 600; min-height: 1.2em; }
+    #status { margin-top: 14px; font-size: 0.9rem; font-weight: 600; min-height: 1.2em; }
+
+    .hidden { display: none !important; }
+
+    .fineprint { font-size: 0.75rem; color: #a0aec0; margin-top: 14px; margin-bottom: 0; line-height: 1.4; }
+
+    .ios-title { font-weight: 800; color: var(--text); font-size: 1.02rem; margin-bottom: 10px; text-align: left; }
+    #flow-ios-guide p { text-align: left; }
+    .ios-steps {
+      text-align: left; margin: 10px 0 14px 0; padding-left: 22px; color: #2d3748;
+    }
+    .ios-steps li { font-size: 0.9rem; line-height: 1.6; margin-bottom: 6px; }
+    .ios-done { font-weight: 700; color: var(--success, #38a169); text-align: left; margin-bottom: 0; }
+
+    .unsub-row { margin-top: 22px; padding-top: 16px; border-top: 1px dashed #e2e8f0; }
+    .unsub-row a { font-size: 0.82rem; color: #a0aec0; text-decoration: underline; cursor: pointer; }
+    .unsub-row a:hover { color: #718096; }
+    #unsub-status { font-size: 0.8rem; margin-top: 8px; min-height: 1.1em; color: #718096; }
   </style>
 </head>
 <body>
 
   <div class="card">
+    <div class="lang-toggle">
+      <button type="button" id="lang-hu-btn" class="lang-btn lang-active" onclick="setLang('hu')">HU</button>
+      <button type="button" id="lang-en-btn" class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+
     <h1>🐞 Katica csoport házipénztár</h1>
-    <p>Engedélyezd az értesítéseket, hogy megkapd a gyümölcsnapi és a programemlékeztetőket ezen a telefonon/gépen.</p>
-    <button id="enable-btn">Értesítések engedélyezése</button>
-    <p id="status"></p>
+
+    <div class="info-block">
+      <p class="info-title" data-i18n="infoTitle">🔔 Miért érdemes engedélyezni?</p>
+      <p data-i18n="infoIntro">A rögzített programokról és gyümölcs napi beosztásról a rendszer automatikusan emlékeztet: push üzenetet küld erre a készülékre.</p>
+      <p data-i18n="infoFruit">🍎 <b>Gyümölcsnap:</b> a kijelölt nap előtti napon kapsz emlékeztetőt — de csak akkor, ha te vagy aznapra beosztva.</p>
+      <p data-i18n="infoProgram">📅 <b>Program:</b> minden új programról 1 héttel az esemény előtt kapsz értesítést — ez mindenkinek megy, aki engedélyezte a push üzenetet.</p>
+    </div>
+
+    <!-- NORMAL FOLYAMAT: Android, desktop, vagy iOS-en már kezdőképernyőről megnyitva -->
+    <div id="flow-normal">
+      <button id="enable-btn" data-i18n="enableBtn">🔔 Értesítések engedélyezése</button>
+      <p id="status"></p>
+    </div>
+
+    <!-- iOS ÚTMUTATÓ: iPhone/iPad, még nincs hozzáadva a kezdőképernyőhöz -->
+    <div id="flow-ios-guide" class="hidden">
+      <p class="ios-title" data-i18n="iosTitle">iPhone/iPad-et használsz?</p>
+      <p data-i18n="iosIntro">Ezesetben az értesítések engedélyezéséhez végezd el az alábbi lépéseket:</p>
+      <ol class="ios-steps">
+        <li data-i18n="iosStep1">Koppints a Megosztás ikonra a böngésző opciókban</li>
+        <li data-i18n="iosStep2">Válaszd a „Hozzáadás a Kezdőképernyőhöz”</li>
+        <li data-i18n="iosStep3">A böngésző így lementi a Katica ikont a telefonodra: nyisd meg</li>
+        <li data-i18n="iosStep4">Engedélyezd az értesítést</li>
+      </ol>
+      <p class="ios-done" data-i18n="iosDone">Kész :)</p>
+    </div>
+
+    <div class="unsub-row">
+      <a id="unsub-link" data-i18n="unsubLink">Leiratkozás a push üzenetekről</a>
+      <p id="unsub-status"></p>
+    </div>
   </div>
 
   <script>
+    const I18N = {
+      hu: {
+        infoTitle: '🔔 Miért érdemes engedélyezni?',
+        infoIntro: 'A rögzített programokról és gyümölcs napi beosztásról a rendszer automatikusan emlékeztet: push üzenetet küld erre a készülékre.',
+        infoFruit: '🍎 <b>Gyümölcsnap:</b> a kijelölt nap előtti napon kapsz emlékeztetőt — de csak akkor, ha te vagy aznapra beosztva.',
+        infoProgram: '📅 <b>Program:</b> minden új programról 1 héttel az esemény előtt kapsz értesítést — ez mindenkinek megy, aki engedélyezte a push üzenetet.',
+        enableBtn: '🔔 Értesítések engedélyezése',
+        iosTitle: 'iPhone/iPad-et használsz?',
+        iosIntro: 'Ezesetben az értesítések engedélyezéséhez végezd el az alábbi lépéseket:',
+        iosStep1: 'Koppints a Megosztás ikonra a böngésző opciókban',
+        iosStep2: 'Válaszd a „Hozzáadás a Kezdőképernyőhöz”',
+        iosStep3: 'A böngésző így lementi a Katica ikont a telefonodra: nyisd meg',
+        iosStep4: 'Engedélyezd az értesítést',
+        iosDone: 'Kész :)',
+        unsubLink: 'Leiratkozás a push üzenetekről',
+        missingEmail: 'Hiányzik az e-mail cím a linkből. Nyisd meg ezt az oldalt a Katica házipénztár alkalmazásból, az "Értesítések engedélyezése" gombra kattintva.',
+        processing: 'Feldolgozás...',
+        success: '✅ Sikeres! Mostantól kapod az értesítéseket ezen az eszközön. Ezt az oldalt bezárhatod.',
+        denied: 'Az értesítés engedélyezése elutasítva. Ha meggondolod magad, engedélyezd a böngésződ oldal-beállításaiban, majd töltsd újra ezt az oldalt.',
+        errorPrefix: 'Hiba történt: ',
+        errorSuffix: '. Próbáld újra.',
+        unknownError: 'ismeretlen hiba',
+        unsubProcessing: 'Leiratkozás...',
+        unsubSuccess: 'Leiratkoztál — erről a készülékről mostantól nem kapsz push üzenetet.',
+        unsubError: 'Hiba történt a leiratkozás során. Próbáld újra.'
+      },
+      en: {
+        infoTitle: '🔔 Why enable this?',
+        infoIntro: 'The system automatically sends a push notification to this device about recorded programs and the fruit-day schedule.',
+        infoFruit: '🍎 <b>Fruit day:</b> you\'ll get a reminder the day before — but only if you\'re the parent assigned to that day.',
+        infoProgram: '📅 <b>Program:</b> you\'ll get a notification about every new program 1 week before the event — this goes to everyone who enabled push notifications.',
+        enableBtn: '🔔 Enable notifications',
+        iosTitle: 'Using an iPhone/iPad?',
+        iosIntro: 'In that case, to enable notifications, follow these steps:',
+        iosStep1: 'Tap the Share icon in your browser',
+        iosStep2: 'Choose "Add to Home Screen"',
+        iosStep3: 'Your browser saves the Katica icon to your phone: open it',
+        iosStep4: 'Enable notifications',
+        iosDone: "Done :)",
+        unsubLink: 'Unsubscribe from push notifications',
+        missingEmail: 'The email address is missing from the link. Open this page from the Katica app by tapping "Enable notifications".',
+        processing: 'Processing...',
+        success: "✅ Success! You'll now receive notifications on this device. You can close this page.",
+        denied: 'Notification permission was denied. If you change your mind, enable it in your browser\'s site settings, then reload this page.',
+        errorPrefix: 'An error occurred: ',
+        errorSuffix: '. Please try again.',
+        unknownError: 'unknown error',
+        unsubProcessing: 'Unsubscribing...',
+        unsubSuccess: "You've unsubscribed — this device will no longer receive push notifications.",
+        unsubError: 'An error occurred while unsubscribing. Please try again.'
+      }
+    };
+
+    let currentLang = localStorage.getItem('katica_push_lang') || 'hu';
+
+    function t(key) {
+      const dict = I18N[currentLang] || I18N.hu;
+      return dict[key] !== undefined ? dict[key] : I18N.hu[key];
+    }
+
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.innerHTML = t(el.getAttribute('data-i18n'));
+      });
+      document.getElementById('lang-hu-btn').classList.toggle('lang-active', currentLang === 'hu');
+      document.getElementById('lang-en-btn').classList.toggle('lang-active', currentLang === 'en');
+      document.documentElement.lang = currentLang;
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('katica_push_lang', lang);
+      applyTranslations();
+    }
+
     function getParam(name) {
       const params = new URLSearchParams(window.location.search);
       return params.get(name);
     }
 
-    const email = getParam('email');
-    const statusEl = document.getElementById('status');
-    const btn = document.getElementById('enable-btn');
-
-    if (!email) {
-      statusEl.innerText = 'Hiányzik az e-mail cím a linkből. Nyisd meg ezt az oldalt a Katica házipénztár alkalmazásból, az "Értesítések engedélyezése" gombra kattintva.';
-      btn.disabled = true;
+    function isIOSDevice() {
+      const ua = navigator.userAgent;
+      const isAppleTouchUA = /iPad|iPhone|iPod/.test(ua);
+      // iPadOS 13+ Safari/Chrome/Edge jelenti magát "MacIntel"-ként, ezért az érintőképernyő
+      // jelenlétével különböztetjük meg egy tényleges Mactől.
+      const isIPadOSDesktopUA = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      return isAppleTouchUA || isIPadOSDesktopUA;
     }
 
-    btn.addEventListener('click', function () {
-      btn.disabled = true;
-      statusEl.innerText = 'Feldolgozás...';
+    function isStandaloneMode() {
+      return (window.navigator.standalone === true) ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+
+    const email = getParam('email');
+    const flowNormal = document.getElementById('flow-normal');
+    const flowIosGuide = document.getElementById('flow-ios-guide');
+    const statusEl = document.getElementById('status');
+    const btn = document.getElementById('enable-btn');
+    const unsubLink = document.getElementById('unsub-link');
+    const unsubStatus = document.getElementById('unsub-status');
+
+    applyTranslations();
+
+    if (isIOSDevice() && !isStandaloneMode()) {
+      flowNormal.classList.add('hidden');
+      flowIosGuide.classList.remove('hidden');
+    } else {
+      if (!email) {
+        statusEl.innerText = t('missingEmail');
+        btn.disabled = true;
+      }
+
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        statusEl.innerText = t('processing');
+
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function (OneSignal) {
+          try {
+            await OneSignal.Notifications.requestPermission();
+
+            if (OneSignal.Notifications.permission) {
+              await OneSignal.login(email.trim().toLowerCase());
+              statusEl.innerText = t('success');
+            } else {
+              statusEl.innerText = t('denied');
+              btn.disabled = false;
+            }
+          } catch (err) {
+            console.error(err);
+            statusEl.innerText = t('errorPrefix') + (err && err.message ? err.message : t('unknownError')) + t('errorSuffix');
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    unsubLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      unsubStatus.innerText = t('unsubProcessing');
 
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function (OneSignal) {
         try {
-          await OneSignal.Notifications.requestPermission();
-
-          if (OneSignal.Notifications.permission) {
-            await OneSignal.login(email.trim().toLowerCase());
-            statusEl.innerText = '✅ Sikeres! Mostantól kapod az értesítéseket ezen az eszközön. Ezt az oldalt bezárhatod.';
-          } else {
-            statusEl.innerText = 'Az értesítés engedélyezése elutasítva. Ha meggondolod magad, engedélyezd a böngésződ oldal-beállításaiban, majd töltsd újra ezt az oldalt.';
-            btn.disabled = false;
-          }
+          await OneSignal.User.PushSubscription.optOut();
+          unsubStatus.innerText = t('unsubSuccess');
         } catch (err) {
           console.error(err);
-          statusEl.innerText = 'Hiba történt: ' + (err && err.message ? err.message : 'ismeretlen hiba') + '. Próbáld újra.';
-          btn.disabled = false;
+          unsubStatus.innerText = t('unsubError');
         }
       });
     });
