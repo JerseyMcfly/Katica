@@ -10,7 +10,9 @@
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function (OneSignal) {
     await OneSignal.init({
-      appId: "3f6344dd-01bd-4530-a847-9531c43d24ee"
+      appId: "3f6344dd-01bd-4530-a847-9531c43d24ee",
+      serviceWorkerPath: "Katica/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/Katica/" }
     });
   });
 </script>
