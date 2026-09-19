@@ -11,8 +11,18 @@
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
-        appId: "3f6344dd-01bd-4530-a847-9531c43d24ee"
-      });
+  appId: "3f6344dd-01bd-4530-a847-9531c43d24ee",
+  // A GitHub Pages oldal ("jerseymcfly/Katica" repository) egy repository-szintű
+  // (project) oldalként fut, ezért nem a domain gyökerében (jerseymcfly.github.io),
+  // hanem a /Katica/ alkönyvtárban él (jerseymcfly.github.io/Katica/). Az OneSignal
+  // SDK alapértelmezésben a domain gyökerében keresné az OneSignalSDKWorker.js
+  // Service Worker fájlt, ott viszont nincs ilyen oldal (404) - ez okozta a
+  // Service Worker regisztráció meghiúsulását, és emiatt az "Értesítések
+  // engedélyezése"/"Leiratkozás" gombok időtúllépését. Az alábbi két paraméter
+  // a helyes, /Katica/ alkönyvtárbeli elérési útra irányítja a SDK-t.
+  serviceWorkerParam: { scope: '/Katica/' },
+  serviceWorkerPath: 'Katica/OneSignalSDKWorker.js'
+});
       window.oneSignalReady = true;
     });
   </script>
