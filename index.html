@@ -7,11 +7,13 @@
 
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
+    window.oneSignalReady = false;
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
         appId: "3f6344dd-01bd-4530-a847-9531c43d24ee"
       });
+      window.oneSignalReady = true;
     });
   </script>
 
@@ -104,6 +106,8 @@
       <a id="unsub-link" data-i18n="unsubLink">Leiratkozás a push üzenetekről</a>
       <p id="unsub-status"></p>
     </div>
+
+    <p id="sdk-warning" class="hidden fineprint" style="color:#dd6b20;" data-i18n="sdkWarning"></p>
   </div>
 
   <script>
@@ -133,7 +137,8 @@
         unsubSuccess: 'Leiratkoztál — erről a készülékről mostantól nem kapsz push üzenetet.',
         unsubError: 'Hiba történt a leiratkozás során. Próbáld újra.',
         unsubTimeout: 'Nem sikerült feldolgozni a kérést (időtúllépés). Ha ezen az eszközön korábban nem engedélyezted az értesítéseket, nincs mit visszavonni — egyébként próbáld frissíteni az oldalt és újra.',
-        enableTimeout: 'Nem érkezett válasz (időtúllépés). Ellenőrizd az internetkapcsolatot, majd töltsd újra az oldalt és próbáld újra.'
+        enableTimeout: 'Nem érkezett válasz (időtúllépés). Ellenőrizd az internetkapcsolatot, majd töltsd újra az oldalt és próbáld újra.',
+        sdkWarning: '⚠️ Az értesítési szolgáltatás nem töltődött be időben. Ha reklámblokkolót vagy adatvédelmi böngészőbővítményt használsz, kapcsold ki ezen az oldalon, majd töltsd újra.'
       },
       en: {
         infoTitle: '🔔 Why enable this?',
@@ -160,7 +165,8 @@
         unsubSuccess: "You've unsubscribed — this device will no longer receive push notifications.",
         unsubError: 'An error occurred while unsubscribing. Please try again.',
         unsubTimeout: "Couldn't process the request (timed out). If you never enabled notifications on this device, there's nothing to undo — otherwise try reloading the page and again.",
-        enableTimeout: 'No response received (timed out). Check your internet connection, reload the page and try again.'
+        enableTimeout: 'No response received (timed out). Check your internet connection, reload the page and try again.',
+        sdkWarning: "⚠️ The notification service didn't load in time. If you're using an ad blocker or a privacy browser extension, turn it off on this page and reload."
       }
     };
 
@@ -214,6 +220,18 @@
     const unsubStatus = document.getElementById('unsub-status');
 
     applyTranslations();
+
+    // Ha 6 másodperc után sem futott le az OneSignal init() (window.oneSignalReady
+    // még mindig false), az szinte biztosan azt jelenti, hogy az SDK be sem tudott
+    // töltődni (pl. reklámblokkoló/adatvédelmi bővítmény blokkolja a onesignal.com
+    // hívásokat) - ez az oka annak, hogy az engedélyezés/leiratkozás gomb később
+    // időtúllépéssel végződik. Ezt előre jelezzük, ne csak a gomb megnyomása után.
+    setTimeout(function () {
+      if (!window.oneSignalReady) {
+        const warningEl = document.getElementById('sdk-warning');
+        if (warningEl) warningEl.classList.remove('hidden');
+      }
+    }, 6000);
 
     if (isIOSDevice() && !isStandaloneMode()) {
       flowNormal.classList.add('hidden');
